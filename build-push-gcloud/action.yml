@@ -1,0 +1,54 @@
+name: "Docker build & push to Artifact Registry"
+description: "Builds the docker image and pushes it to Google Artifact Registry"
+inputs:
+  repo:
+    description: "Repository name"
+    required: true
+  registry:
+    description: "Google Artifact registry"
+    required: false
+    default: "europe-north1-docker.pkg.dev"
+  dockerfile:
+    description: "Dockerfile path"
+    required: false
+    default: "Dockerfile"
+  context:
+    description: "Docker context"
+    required: false
+    default: "."
+  google_key:
+    description: "Google service account key in BASE64"
+    required: true
+outputs:
+  imageid:
+    description: "Image ID"
+    value: ${{ steps.build.outputs.imageid }}
+  tag:
+    description: "Image tag"
+    value: ${{ steps.vars.outputs.branch }}-${{ steps.vars.outputs.sha_short }}
+runs:
+  using: "composite"
+  steps:
+    - name: Docker login to Google Cloud
+      id: vars
+      run: |
+        echo "$B64_GOOGLE_KEY" | docker login -u _json_key_base64 --password-stdin https://$REGISTRY
+        echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+      shell: bash
+      env:
+        B64_GOOGLE_KEY: ${{ inputs.google_key }}
+        REGISTRY: ${{ inputs.registry }}
+    - uses: docker/setup-buildx-action@v3
+    - uses: docker/build-push-action@v5
+      id: build
+      with:
+        context: ${{ inputs.context }}
+        file: ${{ inputs.dockerfile }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        labels: |
+          ci.run_id=${{ github.run_id }}
+        tags:
+          - ${{ inputs.registry }}/${{ inputs.repo }}:${{ steps.vars.outputs.branch }}-${{ steps.vars.outputs.sha_short }}
+          - ${{ inputs.repo }}:latest
