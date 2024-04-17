@@ -49,6 +49,6 @@ runs:
         cache-to: type=gha,mode=max
         labels: |
           ci.run_id=${{ github.run_id }}
-        tags:
-          - ${{ inputs.registry }}/${{ inputs.repo }}:${{ steps.vars.outputs.branch }}-${{ steps.vars.outputs.sha_short }}
-          - ${{ inputs.repo }}:latest
+        tags: |
+          ${{ inputs.registry }}/${{ inputs.repo }}:${{ steps.vars.outputs.branch }}-${{ steps.vars.outputs.sha_short }}
+          ${{ inputs.repo }}:latest
