@@ -7,7 +7,7 @@ inputs:
   registry:
     description: "Google Artifact registry"
     required: false
-    default: "europe-north1-docker.pkg.dev"
+    default: "docker.pkg.dev"
   dockerfile:
     description: "Dockerfile path"
     required: false
@@ -16,6 +16,9 @@ inputs:
     description: "Docker context"
     required: false
     default: "."
+  project_id:
+    description: "Google project ID"
+    required: true
   google_key:
     description: "Google service account key in BASE64"
     required: true
@@ -52,5 +55,5 @@ runs:
         labels: |
           ci.run_id=${{ github.run_id }}
         tags: |
-          ${{ inputs.registry }}/${{ inputs.repo }}:${{ steps.vars.outputs.branch }}-${{ steps.vars.outputs.sha_short }}
+          ${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.repo }}:${{ steps.vars.outputs.branch }}-${{ steps.vars.outputs.sha_short }}
           ${{ inputs.repo }}:latest
