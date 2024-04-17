@@ -34,7 +34,8 @@ runs:
       run: |
         echo "$B64_GOOGLE_KEY" | docker login -u _json_key_base64 --password-stdin https://$REGISTRY
         echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-        echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+        echo "branch=$(echo "$branch" | tr '/\' '-')" >> $GITHUB_OUTPUT
       shell: bash
       env:
         B64_GOOGLE_KEY: ${{ inputs.google_key }}
