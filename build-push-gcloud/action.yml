@@ -56,4 +56,3 @@ runs:
           ci.run_id=${{ github.run_id }}
         tags: |
           ${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.repo }}:${{ steps.vars.outputs.branch }}-${{ steps.vars.outputs.sha_short }}
-          ${{ inputs.repo }}:latest
