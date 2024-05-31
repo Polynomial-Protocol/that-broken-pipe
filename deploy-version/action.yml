@@ -12,8 +12,8 @@ inputs:
   version:
     description: "Image version"
     required: true
-  path:
-    description: "Path to update version"
+  paths:
+    description: "Paths to update version, each path can be in a new line"
     required: true
 runs:
   using: "composite"
@@ -42,18 +42,20 @@ runs:
       shell: bash
       run: |
         cd $REPO/services
-        echo "Updating version to $VERSION for $SERVICE_PATH"
-        if [[ -f "$SERVICE_PATH/kustomization.yaml" ]]; then
-          yq -Yi --arg version test '.helmCharts[0].valuesInline.global.version = $version' $SERVICE_PATH/kustomization.yaml
-        elif [[ -f "$SERVICE_PATH/values.yaml" ]]; then
-          yq -Yi --arg version test '.global.version = $version' $SERVICE_PATH/values.yaml
-        else
-          echo "Config yaml not detected, please check the path is correct!" && exit 2
-        fi
+        while read -r service; do
+          echo "Updating version to $VERSION for $service"
+          if [[ -f "$service/kustomization.yaml" ]]; then
+            yq -Yi --arg version test '.helmCharts[0].valuesInline.global.version = $version' $service/kustomization.yaml
+          elif [[ -f "$service/values.yaml" ]]; then
+            yq -Yi --arg version test '.global.version = $version' $service/values.yaml
+          else
+            echo "Config yaml not detected, please check the path is correct!" && exit 2
+          fi
+        done <<< "$SERVICE_PATHS"
         git add -u
-        git commit -m "[$SERVICE_PATH]: Update version to $VERSION
+        git commit -m "[${CURRENT_REPO#*/}]: Update version to $VERSION
 
-        Automated deployment for PR: https://github.com/$CURRENT_REPO/pulls/$PR_NUM
+        Automated deployment for PR: https://github.com/$CURRENT_REPO/pull/$PR_NUM
         PR Title: $PR_TITLE"
         git push origin main
       env:
@@ -62,4 +64,4 @@ runs:
         CURRENT_REPO: ${{ github.repository }}
         REPO: ${{ inputs.repo }}
         VERSION: ${{ inputs.version }}
-        SERVICE_PATH: ${{ inputs.path }}
+        SERVICE_PATHS: ${{ inputs.paths }}
