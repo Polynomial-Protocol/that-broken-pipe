@@ -12,8 +12,8 @@ inputs:
   version:
     description: "Image version"
     required: true
-  paths:
-    description: "Paths to update version, each path can be in a new line"
+  services:
+    description: "Service paths to update version, each path can be in a new line"
     required: true
 runs:
   using: "composite"
@@ -23,7 +23,7 @@ runs:
     - uses: jwalton/gh-find-current-pr@master
       id: findPr
       with:
-        state: closed
+        state: all
     - uses: snnaplab/get-labels-action@v1
       if: steps.findPr.outputs.number != ''
       id: prLabels
