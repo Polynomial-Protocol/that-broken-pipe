@@ -1,0 +1,65 @@
+name: "Deploys new version to k8s"
+description: "Updates the version in iac-config repo"
+inputs:
+  repo:
+    description: "GitOps Repo"
+    required: false
+    default: "iac-config"
+  required_pr_label:
+    description: "PR label that should be present"
+    required: true
+    default: "auto-deploy"
+  version:
+    description: "Image version"
+    required: true
+  path:
+    description: "Path to update version"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+    - uses: chrisdickinson/setup-yq@latest
+    - uses: jwalton/gh-find-current-pr@master
+      id: findPr
+      with:
+        state: closed
+    - uses: snnaplab/get-labels-action@v1
+      if: steps.findPr.outputs.number != ''
+      id: prLabels
+      with:
+        number: ${{ steps.findPr.outputs.number }}
+    - name: Exit if label not set
+      if: steps.findPr.outputs.pr != '' && !contains(fromJSON(steps.prLabels.outputs.labels), ${{ inputs.required_pr_label }})
+      shell: bash
+      run: exit 1
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository_owner }}/${{ inputs.repo }}
+        path: ${{ inputs.repo }}
+    - uses: fregante/setup-git-user@v2
+    - name: Update app version
+      shell: bash
+      run: |
+        cd $REPO/services
+        echo "Updating version to $VERSION for $SERVICE_PATH"
+        if [[ -f "$SERVICE_PATH/kustomization.yaml" ]]; then
+          yq -Yi --arg version test '.helmCharts[0].valuesInline.global.version = $version' $SERVICE_PATH/kustomization.yaml
+        elif [[ -f "$SERVICE_PATH/values.yaml" ]]; then
+          yq -Yi --arg version test '.global.version = $version' $SERVICE_PATH/values.yaml
+        else
+          echo "Config yaml not detected, please check the path is correct!" && exit 2
+        fi
+        git add -u
+        git commit -m "[$SERVICE_PATH]: Update version to $VERSION
+
+        Automated deployment for PR: https://github.com/$CURRENT_REPO/pulls/$PR_NUM
+        PR Title: $PR_TITLE"
+        git push origin main
+      env:
+        PR_NUM: ${{ steps.findPr.outputs.number }}
+        PR_TITLE: ${{ steps.findPr.outputs.title }}
+        CURRENT_REPO: ${{ github.repository }}
+        REPO: ${{ inputs.repo }}
+        VERSION: ${{ inputs.version }}
+        SERVICE_PATH: ${{ inputs.path }}
