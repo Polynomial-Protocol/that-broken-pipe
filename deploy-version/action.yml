@@ -45,11 +45,12 @@ runs:
         repository: ${{ github.repository_owner }}/${{ inputs.repo }}
         path: ${{ inputs.repo }}
         token: ${{ inputs.gh_token }}
-    - uses: fregante/setup-git-user@v2
     - name: Update app version
       shell: bash
       run: |
         cd $REPO/services
+        git config --global user.email "shivansh@polynomial.fi"
+        git config --global user.name "Github Bot"
         while read -r service; do
           if [[ -z "$service" ]]; then continue; fi
           echo "Updating version to $VERSION for $service"
