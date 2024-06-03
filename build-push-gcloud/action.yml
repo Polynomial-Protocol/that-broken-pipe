@@ -45,6 +45,7 @@ runs:
         REGISTRY: ${{ inputs.registry }}
     - name: Check image
       id: image_exists
+      continue-on-error: true
       uses: cloudposse/github-action-docker-image-exists@main
       with:
         registry: ${{ inputs.registry }}
