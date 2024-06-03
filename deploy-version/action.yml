@@ -70,4 +70,4 @@ runs:
         CURRENT_REPO: ${{ github.repository }}
         REPO: ${{ inputs.repo }}
         VERSION: ${{ inputs.version }}
-        SERVICE_PATHS: ${{ inputs.paths }}
+        SERVICE_PATHS: ${{ inputs.services }}
