@@ -30,8 +30,10 @@ runs:
       with:
         number: ${{ steps.findPr.outputs.number }}
     - name: Exit if label not set
-      if: steps.findPr.outputs.pr != '' && !contains(fromJSON(steps.prLabels.outputs.labels), ${{ inputs.required_pr_label }})
+      if: steps.findPr.outputs.number == '' || !contains(fromJSON(steps.prLabels.outputs.labels), inputs.required_pr_label)
       shell: bash
+      env:
+        TEST: ${{ steps.prLabels.outputs.labels }}
       run: exit 1
     - uses: actions/checkout@v4
       with:
