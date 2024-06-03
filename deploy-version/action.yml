@@ -23,6 +23,8 @@ runs:
   steps:
     - uses: actions/checkout@v4
     - uses: chrisdickinson/setup-yq@latest
+      with:
+        yq-version: v4.43.1
     - uses: jwalton/gh-find-current-pr@master
       id: findPr
       with:
@@ -49,11 +51,12 @@ runs:
       run: |
         cd $REPO/services
         while read -r service; do
+          if [[ -z "$service" ]]; then continue; fi
           echo "Updating version to $VERSION for $service"
           if [[ -f "$service/kustomization.yaml" ]]; then
-            yq -Yi --arg version test '.helmCharts[0].valuesInline.global.version = $version' $service/kustomization.yaml
+            yq e '.helmCharts[0].valuesInline.global.version = env(VERSION)' -i $service/kustomization.yaml
           elif [[ -f "$service/values.yaml" ]]; then
-            yq -Yi --arg version test '.global.version = $version' $service/values.yaml
+            yq e '.global.version = env(VERSION)' -i $service/values.yaml
           else
             echo "Config yaml not detected, please check the path is correct!" && exit 2
           fi
