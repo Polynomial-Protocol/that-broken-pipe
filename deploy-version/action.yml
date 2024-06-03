@@ -15,6 +15,9 @@ inputs:
   services:
     description: "Service paths to update version, each path can be in a new line"
     required: true
+  gh_token:
+    description: "Github PAT to clone and push commit to iac-config"
+    required: true
 runs:
   using: "composite"
   steps:
@@ -39,6 +42,7 @@ runs:
       with:
         repository: ${{ github.repository_owner }}/${{ inputs.repo }}
         path: ${{ inputs.repo }}
+        token: ${{ inputs.gh_token }}
     - uses: fregante/setup-git-user@v2
     - name: Update app version
       shell: bash
