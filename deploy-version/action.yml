@@ -1,0 +1,77 @@
+name: "Deploys new version to k8s"
+description: "Updates the version in iac-config repo"
+inputs:
+  repo:
+    description: "GitOps Repo"
+    required: false
+    default: "iac-config"
+  required_pr_label:
+    description: "PR label that should be present"
+    required: true
+    default: "auto-deploy"
+  version:
+    description: "Image version"
+    required: true
+  services:
+    description: "Service paths to update version, each path can be in a new line"
+    required: true
+  gh_token:
+    description: "Github PAT to clone and push commit to iac-config"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+    - uses: chrisdickinson/setup-yq@latest
+      with:
+        yq-version: v4.43.1
+    - uses: jwalton/gh-find-current-pr@master
+      id: findPr
+      with:
+        state: all
+    - uses: snnaplab/get-labels-action@v1
+      if: steps.findPr.outputs.number != ''
+      id: prLabels
+      with:
+        number: ${{ steps.findPr.outputs.number }}
+    - name: Exit if label not set
+      if: steps.findPr.outputs.number == '' || !contains(fromJSON(steps.prLabels.outputs.labels), inputs.required_pr_label)
+      shell: bash
+      env:
+        TEST: ${{ steps.prLabels.outputs.labels }}
+      run: exit 1
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository_owner }}/${{ inputs.repo }}
+        path: ${{ inputs.repo }}
+        token: ${{ inputs.gh_token }}
+    - name: Update app version
+      shell: bash
+      run: |
+        cd $REPO/services
+        git config --global user.email "shivansh@polynomial.fi"
+        git config --global user.name "Github Bot"
+        while read -r service; do
+          if [[ -z "$service" ]]; then continue; fi
+          echo "Updating version to $VERSION for $service"
+          if [[ -f "$service/kustomization.yaml" ]]; then
+            yq e '.helmCharts[0].valuesInline.global.version = env(VERSION)' -i $service/kustomization.yaml
+          elif [[ -f "$service/values.yaml" ]]; then
+            yq e '.global.version = env(VERSION)' -i $service/values.yaml
+          else
+            echo "Config yaml not detected, please check the path is correct!" && exit 2
+          fi
+        done <<< "$SERVICE_PATHS"
+        git add -u
+        git commit -m "[${CURRENT_REPO#*/}]: Update version to $VERSION
+
+        Automated deployment for PR: https://github.com/$CURRENT_REPO/pull/$PR_NUM
+        PR Title: '$PR_TITLE'"
+        git push origin main
+      env:
+        PR_NUM: ${{ steps.findPr.outputs.number }}
+        PR_TITLE: ${{ steps.findPr.outputs.title }}
+        CURRENT_REPO: ${{ github.repository }}
+        REPO: ${{ inputs.repo }}
+        VERSION: ${{ inputs.version }}
+        SERVICE_PATHS: ${{ inputs.services }}
