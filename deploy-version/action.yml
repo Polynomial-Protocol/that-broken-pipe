@@ -7,8 +7,8 @@ inputs:
     default: "iac-config"
   required_pr_label:
     description: "PR label that should be present"
-    required: true
-    default: "auto-deploy"
+    required: false
+    default: ""
   version:
     description: "Image version"
     required: true
@@ -27,6 +27,7 @@ runs:
         yq-version: v4.43.1
     - uses: jwalton/gh-find-current-pr@master
       id: findPr
+      if: inputs.required_pr_label != ''
       with:
         state: all
     - uses: snnaplab/get-labels-action@v1
@@ -35,7 +36,7 @@ runs:
       with:
         number: ${{ steps.findPr.outputs.number }}
     - name: Exit if label not set
-      if: steps.findPr.outputs.number == '' || !contains(fromJSON(steps.prLabels.outputs.labels), inputs.required_pr_label)
+      if: inputs.required_pr_label != '' && (steps.findPr.outputs.number == '' || !contains(fromJSON(steps.prLabels.outputs.labels), inputs.required_pr_label))
       shell: bash
       env:
         TEST: ${{ steps.prLabels.outputs.labels }}
@@ -63,10 +64,14 @@ runs:
           fi
         done <<< "$SERVICE_PATHS"
         git add -u
-        git commit -m "[${CURRENT_REPO#*/}]: Update version to $VERSION
+        commit="[${CURRENT_REPO#*/}]: Update version to $VERSION"
+        if [[ -n "$PR_NUM" ]]; then
+          commit="$commit
 
-        Automated deployment for PR: https://github.com/$CURRENT_REPO/pull/$PR_NUM
-        PR Title: '$PR_TITLE'"
+          Automated deployment for PR: https://github.com/$CURRENT_REPO/pull/$PR_NUM
+          PR Title: '$PR_TITLE'"
+        fi
+        git commit -m "$commit"
         git push origin main
       env:
         PR_NUM: ${{ steps.findPr.outputs.number }}
