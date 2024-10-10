@@ -1,4 +1,4 @@
-name: "Docker build & push to Artifact Registry"
+m lname: "Docker build & push to Artifact Registry"
 description: "Builds the docker image and pushes it to Google Artifact Registry"
 inputs:
   repo:
@@ -59,8 +59,8 @@ runs:
       with:
         context: ${{ inputs.context }}
         file: ${{ inputs.dockerfile }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+#        cache-from: type=gha
+#        cache-to: type=gha,mode=max
         push: true
         labels: |
           ci.run_id=${{ github.run_id }}
