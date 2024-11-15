@@ -1,4 +1,4 @@
-m lname: "Docker build & push to Artifact Registry"
+name: "Docker build & push to Artifact Registry"
 description: "Builds the docker image and pushes it to Google Artifact Registry"
 inputs:
   repo:
@@ -54,7 +54,7 @@ runs:
     - uses: docker/setup-buildx-action@v3
       if: steps.image_exists.outcome == 'failure'
     - uses: docker/build-push-action@v5
-#      if: steps.image_exists.outcome == 'failure'
+      if: steps.image_exists.outcome == 'failure'
       id: build
       with:
         context: ${{ inputs.context }}
