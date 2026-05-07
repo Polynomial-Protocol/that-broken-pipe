@@ -149,10 +149,18 @@ runs:
 
         # ── 6. Build the new tree on top of the parent. ONE tree
         #      regardless of how many files changed.
-        NEW_TREE=$(gh api -X POST "repos/$FULL_REPO/git/trees" \
-          -f base_tree="$BASE_TREE" \
-          --raw-field tree="$TREE_JSON" \
-          --jq .sha)
+        #
+        # Why piping JSON via `--input -` rather than `-f`/`--raw-field`:
+        # `gh api`'s -f / --raw-field both serialise the value as a
+        # form-data string, so passing the tree array via `--raw-field
+        # tree=...` arrives at GitHub as a string field, and the Trees
+        # API rejects it ("Invalid tree info"). The Trees API expects
+        # `tree` to be an actual JSON array. `--input -` sends the body
+        # we feed it on stdin verbatim, which is the only `gh api` path
+        # that handles nested-JSON request bodies correctly.
+        NEW_TREE=$(jq -n --arg base "$BASE_TREE" --argjson tree "$TREE_JSON" \
+          '{base_tree: $base, tree: $tree}' | \
+          gh api -X POST "repos/$FULL_REPO/git/trees" --input - --jq .sha)
 
         # ── 7. Create the commit. API-created commits are auto-signed
         #      by GitHub's web-flow key as the authenticated user — this
